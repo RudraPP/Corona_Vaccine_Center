@@ -1,0 +1,95 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May 24 10:43:42 2021
+
+@author: rupau
+"""
+
+import requests
+from datetime import date, datetime, timedelta
+import json
+
+
+today = date.today()
+
+
+
+URL = "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin?pincode={}&date={}"
+header = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36'} 
+
+num_days = int(input("Enter the Number of days (from today till how many dates you want to look for ) : "))
+
+
+
+
+
+print("Searching for vaccine centers............... \n")  
+
+
+pincodes = list()
+
+stop_input = "no"
+
+while stop_input == "no":
+    pincode = input("Enter the Pincode (any other key to stop ):")
+    if len(pincode)==6 :        
+           pincodes.append(pincode)
+           
+    else:
+        stop_input = "Yes"
+        
+
+
+
+
+
+print_flag = 'Y'
+out = ""   
+counter = 0   
+
+actual = datetime.today()
+list_format = [actual + timedelta(days=i) for i in range(num_days)]
+actual_dates = [i.strftime("%d-%m-%Y") for i in list_format]
+
+
+for pincode in pincodes:  
+        print("----------------------Seaching for Pin Code",pincode,"----------------------\n \n")
+        for given_date in actual_dates:
+            
+            print("                  Seaching for ",given_date)
+ 
+            URL = "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin?pincode={}&date={}".format(pincode, given_date)
+            header = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36'} 
+            
+            result = requests.get(URL, headers=header)
+            
+            
+            if result.ok:
+                 
+                 response_json = result.json()
+                 
+                 if response_json["centers"]:
+                    
+                     if(print_flag.lower() =='y'):
+                         for center in response_json["centers"]:
+                            
+                             for session in center["sessions"]:
+                            
+                                 if (session["min_age_limit"] <= 52 and session["available_capacity"] > 0 ) :
+                                     out = out + json.dumps(center) + "\n"
+                                     print('Pincode: ' + pincode)
+                                     #print("Available on: {}".format(given_date))
+                                     print("Center Name ", center["name"])
+                                     print("Price: ", center["fee_type"])
+                                     print("Available from ", center["from"] ," to ", center["to"])
+                                     print("Availablity : ", session["available_capacity"])
+                                     if(session["vaccine"] != ''):
+                                         print("Vaccine type: ", session["vaccine"])
+                                         print("\n \n")
+                                     counter+=1
+                                     
+            else:
+                print("No Response! \n" +  "Check the Connectivity or the PIN")
+                        
+            if (counter == 0):
+                print("No Vaccine centers found on "+ given_date)
